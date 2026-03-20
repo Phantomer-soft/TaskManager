@@ -27,10 +27,10 @@ public class JwtTokenHelper
             signingCredentials: credentials,
             claims:
             [
-                new Claim("userId",user.id.ToString()),
-                new Claim("firstName",user.firstName),
-                new Claim("lastName",user.lastName),
-                new Claim("email",user.email)
+                new Claim("userId",user.Id.ToString()),
+                new Claim("firstName",user.FirstName),
+                new Claim("lastName",user.LastName),
+                new Claim("email",user.Email)
             ]
         );
             JwtSecurityTokenHandler tokenHandler = new();

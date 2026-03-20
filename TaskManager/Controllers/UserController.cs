@@ -29,19 +29,19 @@ public class UserController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Register(RegisterDto request)
     {
-            var isUsedMail = await _dbContext.Users.AnyAsync(x => x.email == request.email);
-            var isUsedUsername = await _dbContext.Users.AnyAsync(x => x.userName == request.userName);
+            var isUsedMail = await _dbContext.Users.AnyAsync(x => x.Email == request.Email);
+            var isUsedUsername = await _dbContext.Users.AnyAsync(x => x.UserName == request.UserName);
             
             if (isUsedUsername || isUsedMail)// burada daha aciklayici bir mesaj eklenebilir ama bu sefer de guvenlik acisindan goze batan bir durum olur
                 return BadRequest(new { message = "Bu email veya kullanici adi kullaniliyor " });
             
             User user = new User()
             {   
-                firstName = request.firstName,
-                lastName = request.lastName,
-                email = request.email,
-                userName = request.userName,
-                password = Functions.Hash(request.password),  
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                Email = request.Email,
+                UserName = request.UserName,
+                Password = Functions.Hash(request.Password),  
             
             };
             await _dbContext.AddAsync(user);
@@ -54,15 +54,15 @@ public class UserController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Login(LoginDto request)
     {
-        var passwordHash = Functions.Hash(request.password);
-        var isUser = _dbContext.Users.FirstOrDefault(u => u.userName == request.userName);
-        if (isUser != null && Functions.Verify(request.password, isUser.password))
+        var passwordHash = Functions.Hash(request.Password);
+        var isUser = _dbContext.Users.FirstOrDefault(u => u.UserName == request.UserName);
+        if (isUser != null && Functions.Verify(request.Password, isUser.Password))
         {
             var token = _jwtTokenHelper.CreateAccessToken(_config,isUser);
-            var refreshToken = _jwtTokenHelper.CreateRefreshToken(_config,isUser.id);
+            var refreshToken = _jwtTokenHelper.CreateRefreshToken(_config,isUser.Id);
             
             await _dbContext.RefreshTokens.AddAsync(refreshToken);
-            isUser.refreshTokens.Add(refreshToken);
+            isUser.RefreshTokens.Add(refreshToken);
             _dbContext.Update(isUser);
             await _dbContext.SaveChangesAsync();
             // debug kolay olsun diye ikisini birden dondum 
@@ -76,29 +76,29 @@ public class UserController : ControllerBase
     {
         // dogrulanmis olan kullanicinin tokenindan gelen userid degeri
         var userId = User.FindFirst("UserId")?.Value;
-        var user = await _dbContext.Users.Include(user => user.refreshTokens)
-            .FirstOrDefaultAsync(u => userId != null && u.id == Guid.Parse(userId));
+        var user = await _dbContext.Users.Include(user => user.RefreshTokens)
+            .FirstOrDefaultAsync(u => userId != null && u.Id == Guid.Parse(userId));
 
         if (user != null)
         {
-            var isPasswordTrue = Functions.Verify(request.oldPassword, user.password);
+            var isPasswordTrue = Functions.Verify(request.OldPassword, user.Password);
             if (isPasswordTrue)
             {
                 // Not : burada su sekilde bir durum ortaya cikiyor refreshTokeni veritabaninda tuttugum icin gecersiz kilabiliyorum
                 // Ama ayni seyi accesstoken icin yapamiyorum onu veritabanina yazmak da karmasikligi artirabilir diye accesstoken suresini kisa tuttum
                 
-                user.password = Functions.Hash(request.newPassword);
+                user.Password = Functions.Hash(request.NewPassword);
                 
                 var accessToken = _jwtTokenHelper.CreateAccessToken(_config,user);
-                var refreshToken = _jwtTokenHelper.CreateRefreshToken(_config,user.id);
+                var refreshToken = _jwtTokenHelper.CreateRefreshToken(_config,user.Id);
 
-                var userTokens = user.refreshTokens;
+                var userTokens = user.RefreshTokens;
                 foreach (var token in userTokens)
                 {
                     token.isUsed = true;
                     token.isRevoked = true;
                 }
-                user.refreshTokens.Add(refreshToken);
+                user.RefreshTokens.Add(refreshToken);
                 _dbContext.Update(user);
                 await _dbContext.AddAsync(refreshToken);
                 await _dbContext.SaveChangesAsync();
