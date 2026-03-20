@@ -2,13 +2,13 @@ namespace TaskManager;
 
 public static class Functions
 {
-    public static string Hash(string unhashedText)
+    public static string Hash(string UnhashedText)
     {
-        return BCrypt.Net.BCrypt.HashPassword(unhashedText);
+        return BCrypt.Net.BCrypt.HashPassword(UnhashedText);
     }
-    public static bool Verify(string password, string hashedPassword)
+    public static bool Verify(string Password, string HashedPassword)
     {
-        return BCrypt.Net.BCrypt.Verify(password, hashedPassword);
+        return BCrypt.Net.BCrypt.Verify(Password, HashedPassword);
     }
     
 }
