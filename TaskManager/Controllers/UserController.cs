@@ -52,7 +52,7 @@ public class UserController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost]
-    public async Task<IActionResult> Login(LoginDto request)
+    public async Task<IActionResult> Login([FromBody]LoginDto request)
     {
         var passwordHash = Functions.Hash(request.Password);
         var isUser = _dbContext.Users.FirstOrDefault(u => u.UserName == request.UserName);
