@@ -14,5 +14,5 @@ public class ProjectTask
     public string Description { get; set; } = string.Empty;
     public TaskStatus Status { get; set; } =  TaskStatus.Ready;
     public bool IsDeleted { get; set; } =  false;
-    public int TaskIndex { get; set; } 
+    public DateTime CreatedAt { get; set; } =   DateTime.UtcNow;
 }
