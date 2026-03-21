@@ -22,5 +22,7 @@ public class ApiDbContext(DbContextOptions<ApiDbContext> options) : DbContext(op
         modelBuilder.Entity<ProjectUser>()
             .Property(p => p.Role)
             .HasConversion<string>();
+        modelBuilder.Entity<ProjectUser>()
+            .HasKey(pu => new { pu.ProjectId, pu.UserId });
     }
 }
