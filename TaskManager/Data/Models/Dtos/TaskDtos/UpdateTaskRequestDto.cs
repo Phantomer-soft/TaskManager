@@ -7,7 +7,7 @@ public class UpdateTaskRequestDto
 {
     [Required]
     [MinLength(3,ErrorMessage = "Aciklama en az  3 karakter olmalidir")]
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
     [Required]
     public TaskStatus  Status { get; set; } 

@@ -14,7 +14,7 @@ public class JwtTokenHelper
         Token token = new();
 
         SymmetricSecurityKey securityKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(config["Jwt_Token:SecretKey"]));
+            Encoding.UTF8.GetBytes(config["Jwt_Token:SecretKey"] ?? string.Empty));
         
         SigningCredentials credentials = new SigningCredentials(securityKey,SecurityAlgorithms.HmacSha512);
         token.expiration = DateTime.UtcNow.AddMinutes(Convert.ToInt16(config["Jwt_Token:ExpirationMins"]));  // app settingste ayarlardigim exp zamani 
