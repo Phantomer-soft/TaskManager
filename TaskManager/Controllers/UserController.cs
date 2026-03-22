@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +17,7 @@ public class UserController : ControllerBase
     private readonly ApiDbContext _dbContext; // dependency inject 
     private readonly JwtTokenHelper _jwtTokenHelper;
     private readonly IConfiguration _config;
-    public UserController(ApiDbContext dbContext, JwtTokenHelper jwtTokenHelper, IConfiguration configuration, IConfiguration config)
+    public UserController(ApiDbContext dbContext, JwtTokenHelper jwtTokenHelper, IConfiguration config)
     {
         _dbContext = dbContext;
         _jwtTokenHelper = jwtTokenHelper;
@@ -54,7 +53,6 @@ public class UserController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Login([FromBody]LoginDto request)
     {
-        var passwordHash = Functions.Hash(request.Password);
         var isUser = _dbContext.Users.FirstOrDefault(u => u.UserName == request.UserName);
         if (isUser != null && Functions.Verify(request.Password, isUser.Password))
         {
