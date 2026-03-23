@@ -271,4 +271,33 @@ public class ProjectController : Controller
 
         }
     }
+    [HttpDelete("{projectId}")]
+    public async Task<IActionResult> DeleteProject(Guid projectId)
+    {
+        var userId = User.FindFirst("UserId")?.Value;
+        if (userId == null)
+            return Unauthorized();
+        else
+        {
+            // sadece proje sahibi silebilir
+            var userProject = await _dbContext.ProjectUsers
+                .Include(pu => pu.Project)
+                .FirstOrDefaultAsync(
+                    pu => pu.UserId ==  Guid.Parse(userId)
+                    && pu.ProjectId == projectId
+                    && pu.Project.OwnerId == Guid.Parse(userId)
+                    && !pu.Project.IsDeleted);
+            if (userProject == null)
+                return Unauthorized(new { message = "Proje bulunamadi veya yetkiniz yok" });
+            else
+            {
+                // proje silindikten sonra kullanıcı proje tablosunu da temizledim 
+                userProject.Project.IsDeleted = true;
+                var projectUsers = _dbContext.ProjectUsers.Where(pu => pu.ProjectId == projectId);
+                _dbContext.ProjectUsers.RemoveRange(projectUsers);
+                await _dbContext.SaveChangesAsync();
+                return Ok("Proje basariyla silindi ");
+            }
+        }
+    }
 }
