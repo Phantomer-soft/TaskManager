@@ -5,6 +5,7 @@ using TaskManager.Auth;
 using TaskManager.Data;
 using TaskManager.Data.Models.Dtos;
 using TaskManager.Data.Models.Entities;
+using TaskManager.GlobalExceptionHandling;
 using TaskManager.Models.Dtos;
 
 namespace TaskManager.Controllers;
@@ -32,7 +33,7 @@ public class UserController : ControllerBase
             var isUsedUsername = await _dbContext.Users.AnyAsync(x => x.UserName == request.UserName);
             
             if (isUsedUsername || isUsedMail)// burada daha aciklayici bir mesaj eklenebilir ama bu sefer de guvenlik acisindan goze batan bir durum olur
-                return BadRequest(new { message = "Bu email veya kullanici adi kullaniliyor " });
+                throw new UserRegisterException("Bu kullanici adi veya email kullaniliyor");
             
             User user = new User()
             {   
@@ -46,14 +47,14 @@ public class UserController : ControllerBase
             await _dbContext.AddAsync(user);
             await _dbContext.SaveChangesAsync();
             // debug kolay olsun diye simdilik direkt user dondum
-            return Ok(user);
+            return Ok(new {message = "Kayit basarili giris yapabilirsiniz."});
     }
 
     [AllowAnonymous]
     [HttpPost]
     public async Task<IActionResult> Login([FromBody]LoginDto request)
     {
-        var isUser = _dbContext.Users.FirstOrDefault(u => u.UserName == request.UserName);
+        var isUser = _dbContext.Users.FirstOrDefault(u => u.Email == request.Email);
         if (isUser != null && Functions.Verify(request.Password, isUser.Password))
         {
             var token = _jwtTokenHelper.CreateAccessToken(_config,isUser);
@@ -64,9 +65,10 @@ public class UserController : ControllerBase
             _dbContext.Update(isUser);
             await _dbContext.SaveChangesAsync();
             // debug kolay olsun diye ikisini birden dondum 
-            return Ok(new { token,refreshToken });
+            return Ok(new { token,RefreshToken = refreshToken.token });
         }
-        return Unauthorized(new { message = "Kullanici adi veya sifre hatali"});
+
+        throw new UserLoginException("Kulanici adi veya sifre hatali");
     }
 
     [HttpPut]
@@ -84,11 +86,11 @@ public class UserController : ControllerBase
             {
                 // Not : burada su sekilde bir durum ortaya cikiyor refreshTokeni veritabaninda tuttugum icin gecersiz kilabiliyorum
                 // Ama ayni seyi accesstoken icin yapamiyorum onu veritabanina yazmak da karmasikligi artirabilir diye accesstoken suresini kisa tuttum
-                
+
                 user.Password = Functions.Hash(request.NewPassword);
-                
-                var accessToken = _jwtTokenHelper.CreateAccessToken(_config,user);
-                var refreshToken = _jwtTokenHelper.CreateRefreshToken(_config,user.Id);
+
+                var accessToken = _jwtTokenHelper.CreateAccessToken(_config, user);
+                var refreshToken = _jwtTokenHelper.CreateRefreshToken(_config, user.Id);
 
                 var userTokens = user.RefreshTokens;
                 foreach (var token in userTokens)
@@ -96,6 +98,7 @@ public class UserController : ControllerBase
                     token.isUsed = true;
                     token.isRevoked = true;
                 }
+
                 user.RefreshTokens.Add(refreshToken);
                 _dbContext.Update(user);
                 await _dbContext.AddAsync(refreshToken);
@@ -107,9 +110,66 @@ public class UserController : ControllerBase
                     refreshToken = refreshToken.token,
                 });
             }
-            return BadRequest(new { message = "Mevcut sifrenizi hatali girdiniz" });
+            throw new UserUpdatePasswordException("Mevcut sifrenizi hatali girdiniz",400);
         }
         else
-            return NotFound(new {message = "Kullanici bilgileri alinamadi"});
+            throw new UserUpdatePasswordException("Kullanici bilgileri alinamadi",401);
+    }
+    [AllowAnonymous]
+    [HttpPost]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequestDto request)
+    {
+        var refreshToken = await _dbContext.RefreshTokens
+            .FirstOrDefaultAsync(rt => rt.token == request.RefreshToken
+                                       && !rt.isUsed
+                                       && !rt.isRevoked
+                                       && rt.expiresAt > DateTime.UtcNow);
+
+        if (refreshToken == null)
+            throw new UserLoginException("Gecersiz veya suresi dolmus token");
+        var user = await _dbContext
+            .Users.FirstOrDefaultAsync(u=> u.Id == refreshToken.UserId);
+        if (user == null)
+            throw new UserLoginException("Lütfen tekrar giris yapiniz");
+        refreshToken.isUsed = true;
+        refreshToken.isRevoked = true;
+
+        // yeni tokenlar 
+        var newAccessToken = _jwtTokenHelper.CreateAccessToken(_config, user);
+        var newRefreshToken = _jwtTokenHelper.CreateRefreshToken(_config, refreshToken.UserId);
+
+        await _dbContext.RefreshTokens.AddAsync(newRefreshToken);
+        _dbContext.Update(refreshToken);
+        await _dbContext.SaveChangesAsync();
+
+        return Ok(new
+        {
+            accessToken = newAccessToken,
+            refreshToken = newRefreshToken.token
+        });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> LogOutAll()
+    {
+        // update passwordla aynı işi yaptı aslında bunları tek bir fonksiyona indirsem de olurdu 
+        var userId = User.FindFirst("UserId")?.Value;
+        if (userId != null)
+        {
+            var refreshTokens = _dbContext.RefreshTokens
+                .Where(rt => rt.UserId == Guid.Parse(userId)
+                && !rt.isUsed);
+            if(!refreshTokens.Any())
+                return Unauthorized();
+            foreach (var token in refreshTokens)
+            {
+                token.isUsed = true;
+                token.isRevoked = true;
+            }
+            await _dbContext.SaveChangesAsync();
+            return Ok(new { message = "Cikis basarili" });
+        }
+
+        throw new UserLoginException("Lutfen tekrar giris yapiniz");
     }
 }
