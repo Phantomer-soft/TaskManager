@@ -3,17 +3,33 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Events;
+using TaskManager;
 using TaskManager.Auth;
 using TaskManager.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// daha once log mekanizmasi kurmadigim icin videolardan ve yapay zekadan yardim aldim 
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft",LogEventLevel.Warning)
+    .MinimumLevel.Override("System",LogEventLevel.Warning)
+    .WriteTo.Console()
+    .WriteTo.File(
+        path:"logs/log-.txt",
+        rollingInterval:RollingInterval.Day,
+        retainedFileCountLimit:30
+    )
+    .CreateLogger();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers() 
     .AddJsonOptions(x => x.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 // status, role gibi enum ayarlanmis degerler int olarak degil de string olarak frontendden istenebilsin diye eklendi
+builder.Services.AddExceptionHandler<GLobalExceptionHandler>().AddProblemDetails();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -42,7 +58,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddDbContext<ApiDbContext>(
     options => options.UseNpgsql(builder.Configuration.GetConnectionString("PostgresConnection")));
 builder.Services.AddSingleton<JwtTokenHelper>();
+builder.Host.UseSerilog();
+
 var app = builder.Build();
+app.UseExceptionHandler();
 app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -50,7 +69,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.MapControllers();
 }
-
+app.MapControllers();
 app.Run();
+Log.CloseAndFlush();
