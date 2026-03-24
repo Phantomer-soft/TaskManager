@@ -11,6 +11,7 @@ public class ApiDbContext(DbContextOptions<ApiDbContext> options) : DbContext(op
     public DbSet<Project>Projects { get; set; }
     public DbSet<ProjectTask> ProjectTasks { get; set; }
     public DbSet<ProjectUser> ProjectUsers { get; set; }
+    public DbSet<PinCode> PinCodes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     { 
