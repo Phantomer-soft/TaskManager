@@ -18,6 +18,7 @@ public class ProjectController : Controller
     {
         _dbContext = dbContext;
     }
+    //                                PROJECTS
 
     // yeni bir proje olusturur 
     [HttpPost]
@@ -82,7 +83,7 @@ public class ProjectController : Controller
                     .ToListAsync();
                 if (projects.Count == 0)
                 {
-                    return Ok("Kayitli proje bulunamadi");
+                    return Ok(new {message = "Kayitli proje bulunamadi"});
                 }
                 return Ok(projects);
             }
@@ -95,15 +96,15 @@ public class ProjectController : Controller
     }
 
     // bir proje icin ayrintili bilgileri getirir 
-    [HttpGet("GetProjectInfo")]
-    public IActionResult GetProjectInfo([FromBody] Guid id)
+    [HttpGet("ProjectInfo/{projectId}")]
+    public IActionResult GetProjectInfo(Guid projectId)
     {
         var userId = User.FindFirst("UserId")?.Value;
         if (userId != null)
         {
             var project = _dbContext.ProjectUsers
                 .Where(pu => pu.UserId == Guid.Parse(userId) 
-                             && pu.ProjectId == id)
+                             && pu.ProjectId == projectId)
                 .Include(pu => pu.Project).Select(pu => new SendProjectInfoDto
                 {
                     ProjectId = pu.Project.Id,
@@ -120,6 +121,7 @@ public class ProjectController : Controller
         return Unauthorized();
     }
 
+    // secili project id ye sahip quizi duzenler
     [HttpPut("{projectId}")]
     public async Task<IActionResult> UpdateProjectDetails(Guid projectId, [FromBody]UpdateProjectRequestDto request)
     {
@@ -154,6 +156,7 @@ public class ProjectController : Controller
         }
     }
     //                                   TASKS 
+    // secili project id icin yeni bir task olusturur 
     [HttpPost("{projectId}/Tasks")]
     public async Task<IActionResult> CreateTask(Guid projectId,[FromBody]List<CreateTaskRequestDto> taskList)
     {
@@ -162,8 +165,11 @@ public class ProjectController : Controller
             return Unauthorized();
         if(taskList.Count < 1)
             return BadRequest(new {message = "En az 1 gorev eklemelisiniz "});
-        else
-        {
+        if (!ModelState.IsValid)
+            return BadRequest();
+        if(projectId == Guid.Empty)
+            return BadRequest(new {message = "Lutfen gecerli bir proje id girin"});
+            
             // proje id dogru olsa bile kullanici yetkili olmadigi surece ekleme yapamaz
             var projectUser = await _dbContext.ProjectUsers
                 .Include(projectUser => projectUser.Project).ThenInclude(project => project.Tasks)
@@ -171,8 +177,8 @@ public class ProjectController : Controller
                                           && u.UserId == Guid.Parse(userId)
                                           && (u.Role == Role.Admin ||
                                               u.Role == Role.Participant));
-            if(projectUser == null)
-                return Unauthorized(new {mesage = "Proje bulunamadi veya yetkiniz yok"});
+            if (projectUser == null)
+                return Unauthorized(new { mesage = "Proje bulunamadi veya yetkiniz yok" });
             else
             {
                 projectUser.Project.Tasks ??= new List<ProjectTask>(); // ilk gorevse listeyi olusturdum 
@@ -181,14 +187,15 @@ public class ProjectController : Controller
                     ProjectTask projectTask = new()
                     {
                         // task index ornegin 10 tane goerv varsa son eklenmis gorev [9] olacagi icin direkt 10 indexini alarak ekleniyor
-                        Id =  Guid.NewGuid(),
+                        Id = Guid.NewGuid(),
                         IsDeleted = false,
-                        Description =  task.Description,
+                        Description = task.Description,
                         ProjectId = projectId,
                     };
                     projectUser.Project.Tasks.Add(projectTask);
                     await _dbContext.ProjectTasks.AddAsync(projectTask);
                 }
+
                 await _dbContext.SaveChangesAsync();
                 SendProjectInfoDto dto = new()
                 {
@@ -198,13 +205,12 @@ public class ProjectController : Controller
                     Status = projectUser.Project.Status.ToString(),
                     Tasks = projectUser.Project.Tasks.Where(t => !t.IsDeleted).ToList()
                 };
-                
+
                 return Ok(dto);
             }
-        }
-        
     }
     [HttpPut("{taskId}/Tasks")]
+    // verilen task id ye sahip task i gunceller
     public async Task<IActionResult> UpdateTask(Guid taskId, [FromBody]UpdateTaskRequestDto  request)
     {
         if (!ModelState.IsValid)
@@ -233,6 +239,7 @@ public class ProjectController : Controller
         return Ok(task);
     }
 
+    // verilen task id ye sahip taski silindi isaretler 
     [HttpDelete("{taskId}/Tasks")]
     public async Task<IActionResult> DeleteTask(Guid taskId)
     {
@@ -267,10 +274,12 @@ public class ProjectController : Controller
                 Tasks = projectUser.Project.Tasks!.Where(t => !t.IsDeleted).ToList()
             };
 
-            return Ok(dto);
+            return Ok(new {message = "Silme islemi basarili", dto});
 
         }
     }
+    
+    // verilen project id ye sahip gorevi silindi isaretler 
     [HttpDelete("{projectId}")]
     public async Task<IActionResult> DeleteProject(Guid projectId)
     {
