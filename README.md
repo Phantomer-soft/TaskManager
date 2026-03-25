@@ -31,7 +31,7 @@ Kullanıcıların hesap oluşturup bu hesaba giriş yapabildiği, hesap içerisi
   {
     "SecretKey" : " Son derece guvenlikli super gizli bir sifre olsa bile cozulebilir",
     "Issuer": "TaskManagerApi",
-    "Audience": "TaskManagerClient",irt
+    "Audience": "TaskManagerClient",
     "ExpirationMins": 10,
     "RefreshTokenExpirationHours": 24
   }
