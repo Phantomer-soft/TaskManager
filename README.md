@@ -13,7 +13,10 @@ Kullanıcıların hesap oluşturup bu hesaba giriş yapabildiği, hesap içerisi
 
 1) Repoyu Klonla   =>   git clone https://github.com/Phantomer-soft/TaskManager.git
 2) Repoya Gir
-3) appsettings.json ayarla 
+3) appsettings.json ayarla
+
+
+
 ========ÖRNEK APPSETTINGS.JSON===============
 {
   "Logging": {
@@ -37,6 +40,9 @@ Kullanıcıların hesap oluşturup bu hesaba giriş yapabildiği, hesap içerisi
   }
 }
 ==============================================
+
+
+
 4) Migration oluştur     =>     dotnet ef migrations add CreateDbFirst
 5) Migration uygula      =>     dotnet ef database update
 6) Çalıştır              =>     dotnet run 
