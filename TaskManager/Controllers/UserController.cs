@@ -149,7 +149,7 @@ public class UserController : ControllerBase
         });
     }
 
-    [HttpGet]
+    [HttpPost]
     public async Task<IActionResult> LogOutAll()
     {
         // update passwordla aynı işi yaptı aslında bunları tek bir fonksiyona indirsem de olurdu 
