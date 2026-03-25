@@ -15,8 +15,6 @@ Kullanıcıların hesap oluşturup bu hesaba giriş yapabildiği, hesap içerisi
 2) Repoya Gir
 3) appsettings.json ayarla
 
-
-
 ========ÖRNEK APPSETTINGS.JSON===============
 {
   "Logging": {
@@ -40,7 +38,6 @@ Kullanıcıların hesap oluşturup bu hesaba giriş yapabildiği, hesap içerisi
   }
 }
 ==============================================
-
 
 
 4) Migration oluştur     =>     dotnet ef migrations add CreateDbFirst
