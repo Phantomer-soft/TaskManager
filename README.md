@@ -7,6 +7,13 @@ Kullanıcıların hesap oluşturup bu hesaba giriş yapabildiği, hesap içerisi
 - JWT
 - Serilog
 - EfCore
+### Docker İle Kurulum
+1) Repoyu Klonla => git clone https://github.com/Phantomer-soft/TaskManager.git
+2) Konteyner build et =>  docker build -t taskmanager . 
+3) Konteyneri çalıştır => docker run taskmanager
+4) Konteyner id bulunur => docker ps a 
+5) Tarayıcıda =>  konteynerid:8080/swagger
+6) Kontrol edilebilir 
 
 
 ### KURULUM 
